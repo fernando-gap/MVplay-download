@@ -1,0 +1,290 @@
+#! /usr/bin/env bash
+
+
+
+function mvplay() {
+	
+	folder_dependencies
+	printf "\n";
+	echo "***********************************"
+	echo '* 1. Download Videos & Playlist   *';
+	echo '* 2. Download Musics              *';
+	echo "***********************************";
+
+	printf "> "	
+	read user
+	
+	if [ $user == '1' ]; then
+		videos	
+		google_drive
+		upload_videos_to_drive
+
+
+	elif [ $user == '2' ]; then
+		musics
+		google_drive
+		upload_musics_to_drive
+
+
+	elif [ $user == 'automatic-1' ]; then
+		videos
+		printf "\n\n**********AUTOMATIC UPLOAD***********\n\n";
+		automatic_videos_to_drive
+
+
+	elif [ $user == 'automatic-2' ]; then
+		musics
+		printf "\n\n**********AUTOMATIC UPLOAD***********\n\n";
+		automatic_musics_to_drive
+
+
+	else
+		echo "Invalid Option";
+		mvplay
+	fi
+
+}
+
+
+folder_dependencies() {
+
+	FILE_DRIVE=~/drive/
+	FILE_MVPLAY=~/drive/MVplay/
+	FILE_MUSICS=~/drive/MVplay/Musics/
+	FILE_VIDEOS=~/drive/MVplay/Videos/
+	FILE_PLAYLISTS=~/drive/MVplay/Videos/Playlists/
+	
+	if [ -d $FILE_DRIVE ]; then
+		return 0;
+
+	else 
+		mkdir ~/drive/
+	fi
+
+
+	if [ -d $FILE_MVPLAY ]; then
+		return 0;
+
+	else 
+		mkdir ~/drive/MVplay/;
+	fi
+
+
+	if [ -d $FILE_MUSICS ]; then
+		return 0;
+	
+	else 
+		mkdir ~/drive/MVplay/Musics
+	fi
+
+
+	if [ -d $FILE_VIDEOS ]; then
+		return 0;
+	else
+		mkdir ~/drive/MVplay/Videos/;
+	fi
+
+
+	if [ -d $FILE_PLAYLISTS ]; then
+		return 0;
+	else 
+		mkdir ~/drive/MVplay/Videos/Playlists/;
+	fi
+
+}
+
+
+videos() {
+
+	printf "\nlink:";
+	printf "\n> ";
+	read link_yt
+	
+	if echo $link_yt | grep -e /playlist?; then
+		echo "OK";
+		download_playlist
+
+
+	elif echo $link_yt | grep -e /watch?v; then
+		echo "OK";
+		download_videos
+
+
+	else
+		printf "\nNO LINK\n";
+		videos
+	fi
+
+}
+
+download_playlist() {
+
+	# download playlist and put it in a folder
+	youtube-dl --ignore-config --yes-playlist -w -i -o '~/drive/MVplay/Videos/Playlists/playlist_%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' $link_yt
+		
+	if echo $? == 0; then
+		printf "\n\nSuccess!!!"
+
+
+	else 
+		printf "\nSomething is wrong...";
+		mvplay
+	fi
+
+}
+
+
+download_videos() {
+
+	# download video and putit in a folder
+	youtube-dl --ignore-config -w -i -o '~/drive/MVplay/Videos/%(title)s.%(ext)s' $link_yt 
+
+	if echo $? == 0; then
+		printf "\n\nSuccess!!!"	
+
+
+	else
+		printf "\nSomething is wrong...";
+		mvplay
+	fi
+
+}
+
+
+musics() {
+
+	printf "\nlink:";
+	printf "\n> ";
+	read link_ms
+
+
+	if echo $link_ms | grep -e /playlist?; then
+		echo "OK";
+		download_music_playlist
+
+
+	elif echo $link_ms | grep -e /watch?v; then
+		echo "OK";
+		download_music
+
+
+	else
+		printf "\nNO LINK\n";
+		musics	
+	fi
+
+}
+
+
+download_music_playlist() {
+
+	# download musics convert to mp3 and put it in a folder
+	youtube-dl --ignore-config --yes-playlist -w -i -x --audio-quality 5 --audio-format "mp3" -o '~/drive/MVplay/Musics/%(title)s.%(ext)s' $link_ms
+	
+	if echo $? == 0; then
+		printf "\n\nSuccess!!!";	
+
+
+	else
+		printf "\nSomething is wrong...";
+		mvplay
+	fi
+}
+
+
+download_music() {
+	
+	# donwload music convert to mp3 and put in a folder
+	youtube-dl --ignore-config --no-playlist -w -i -x --audio-quality 5 --audio-format "mp3" -o '~/drive/MVplay/Musics/%(title)s.%(ext)s' $link_ms
+
+
+	if echo $? == 0; then
+		printf "\n\nSuccess!!!";	
+
+
+	else
+		printf "\nSomething is wrong...";
+		mvplay
+	fi
+
+}
+
+
+# send archives to google drive
+
+google_drive() {
+	
+	if command -v drive &> /dev/null; then
+		echo "You have google drive!";
+		echo "Do you want to upload it? y/n";
+		
+	else 
+		echo "You don't have google drive yet. You're files are saved at ~/drive/MVplay/ | go check!";
+	fi
+
+}
+
+
+# tar | create compress archive
+# drive push | push the archive to drive
+# mv | move to drive folder
+
+
+upload_musics_to_drive() {
+
+	printf "\n> ";
+	read up_musics_to_drive
+	
+	if [ $up_musics_to_drive == "y" ]; then
+		
+		tar -czvPf musics-mvplay.tar.gz ~/drive/MVplay/Musics/;
+		mv musics-mvplay.tar.gz ~/drive/MVplay/;
+		drive push -quiet ~/drive/MVplay/musics-mvplay.tar.gz;
+
+	else 
+		return 0;
+	fi	
+
+}
+
+
+upload_videos_to_drive() {
+
+	printf "\n> "
+	read up_videos_to_drive
+
+
+	if [ $up_videos_to_drive == "y" ]; then	
+
+		tar -czvPf videos-mvplay.tar.gz ~/drive/MVplay/Videos/;
+		mv videos-mvplay.tar.gz ~/drive/MVplay/;
+		drive push -quiet ~/drive/MVplays/videos-mvplay.tar.gz;
+	
+		printf "\n\nSuccess!!!";
+
+
+	else
+		return 0;
+	fi
+
+}
+
+
+automatic_musics_to_drive() {
+	
+	tar -czvPf musics-mvplay.tar.gz ~/drive/MVplay/Musics/;
+	mv musics-mvplay.tar.gz ~/drive/MVplay/;
+	drive push -quiet ~/drive/MVplay/musics-mvplay.tar.gz;
+
+}
+
+
+automatic_videos_to_drive() {
+	
+	tar -czvPf videos-mvplay.tar.gz ~/drive/MVplay/Videos/;
+	mv videos-mvplay.tar.gz ~/drive/MVplay/;
+	drive push -quiet ~/drive/MVplays/videos-mvplay.tar.gz;
+
+}
+
+mvplay
